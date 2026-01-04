@@ -1,0 +1,28 @@
+# OpenSpatial Development Commands
+
+# Default recipe - show available commands
+default:
+    @just --list
+
+# Install all dependencies
+install:
+    npm install
+
+# Run the dev server (includes signaling)
+dev:
+    npm run dev
+
+# Build for production
+build:
+    npm run build
+
+# Preview production build
+preview:
+    npm run preview
+
+# Clean node_modules
+clean:
+    rm -rf node_modules
+
+# Reinstall all dependencies
+reinstall: clean install
