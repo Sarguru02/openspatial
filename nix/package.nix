@@ -36,7 +36,7 @@ EOF
 
   meta = with lib; {
     description = "OpenSpatial - Spatial Video Chat";
-    license = licenses.mit;
+    license = licenses.agpl3Only;
     mainProgram = "openspatial";
   };
 }
