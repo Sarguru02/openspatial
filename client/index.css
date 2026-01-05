@@ -265,11 +265,10 @@ body {
     left: 0;
     top: 0;
     transform-origin: 0 0;
+    /* SVG office floor plan - scales infinitely */
     background: 
-        radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
-        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-    background-size: 100% 100%, 50px 50px, 50px 50px;
+        url('/client/assets/office-bg.svg') center/cover no-repeat,
+        var(--color-bg-secondary);
 }
 
 /* ===== Space Info ===== */
@@ -572,7 +571,11 @@ body {
     position: relative;
     width: 180px;
     height: 180px;
-    background: var(--color-surface);
+    /* Match main canvas - same SVG background */
+    background: 
+        url('/client/assets/office-bg.svg') center/cover no-repeat,
+        var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     cursor: pointer;
     overflow: hidden;
