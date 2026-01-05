@@ -14,3 +14,11 @@ jobs:
       - uses: nixbuild/nix-quick-install-action@v33
       - name: Build
         run: nix build
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm run test:run
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run E2E tests
+        run: npm run e2e
