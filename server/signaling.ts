@@ -49,7 +49,6 @@ export function attachSignaling(io: Server): void {
     let currentUsername: string | null = null;
 
     peerSockets.set(peerId, socket.id);
-    console.log(`[Signaling] Peer connected: ${peerId}`);
 
     socket.on('join-space', ({ spaceId, username }: JoinSpaceEvent) => {
       currentSpace = spaceId;
@@ -92,9 +91,8 @@ export function attachSignaling(io: Server): void {
       const targetSocketId = peerSockets.get(to);
       if (targetSocketId) {
         io.to(targetSocketId).emit('signal', data);
-        console.log(`[Signaling] Signal ${signal.type} from ${from} to ${to}`);
       } else {
-        console.log(`[Signaling] Target peer ${to} not found for signal`);
+        console.warn(`[Signaling] Target peer ${to} not found for signal`);
       }
     });
 
@@ -161,6 +159,7 @@ export function attachSignaling(io: Server): void {
           username: currentUsername,
         };
         socket.to(currentSpace).emit('screen-share-started', broadcast);
+        console.log(`[Signaling] ${currentUsername} started screen share in ${currentSpace}`);
       }
     });
 
@@ -174,6 +173,7 @@ export function attachSignaling(io: Server): void {
         
         const broadcast: ScreenShareStoppedBroadcast = { peerId: pid, shareId };
         socket.to(currentSpace).emit('screen-share-stopped', broadcast);
+        console.log(`[Signaling] ${currentUsername} stopped screen share in ${currentSpace}`);
       }
     });
 
@@ -198,9 +198,6 @@ export function attachSignaling(io: Server): void {
           }
         }
       }
-      console.log(`[Signaling] Peer disconnected: ${peerId}`);
     });
   });
-
-  console.log('[Signaling] Socket.io signaling attached');
 }
