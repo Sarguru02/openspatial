@@ -123,22 +123,24 @@ export function attachSignaling(io: Server): void {
       if (!currentSpace) return;
       const space = spaces.get(currentSpace);
       const share = space?.screenShares.get(shareId);
-      if (share) {
+      // Only allow owner to update position
+      if (share && share.peerId === peerId) {
         share.x = x;
         share.y = y;
+        socket.to(currentSpace).emit('screen-share-position-update', { shareId, x, y });
       }
-      socket.to(currentSpace).emit('screen-share-position-update', { shareId, x, y });
     });
 
     socket.on('screen-share-resize-update', ({ shareId, width, height }: ScreenShareResizeUpdateEvent) => {
       if (!currentSpace) return;
       const space = spaces.get(currentSpace);
       const share = space?.screenShares.get(shareId);
-      if (share) {
+      // Only allow owner to update size
+      if (share && share.peerId === peerId) {
         share.width = width;
         share.height = height;
+        socket.to(currentSpace).emit('screen-share-resize-update', { shareId, width, height });
       }
-      socket.to(currentSpace).emit('screen-share-resize-update', { shareId, width, height });
     });
 
     socket.on('media-state-update', ({ peerId: pid, isMuted, isVideoOff }: MediaStateUpdateEvent) => {

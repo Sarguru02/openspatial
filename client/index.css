@@ -665,7 +665,7 @@ body {
     overflow: hidden;
     box-shadow: var(--shadow-xl);
     z-index: 5;
-    resize: both;
+    /* resize controlled by JavaScript - only local (owned) shares are resizable */
 }
 
 .screen-share-header {

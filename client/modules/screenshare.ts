@@ -99,7 +99,10 @@ export class ScreenShareManager {
     video.muted = isLocal;
     element.appendChild(video);
 
-    this.setupDrag(element, shareId);
+    // Only allow drag for local screen shares (owner only)
+    if (isLocal) {
+      this.setupDrag(element, shareId);
+    }
 
     const closeBtn = element.querySelector('.screen-share-close') as HTMLButtonElement;
     const copyBtn = element.querySelector('.screen-share-copy') as HTMLButtonElement;

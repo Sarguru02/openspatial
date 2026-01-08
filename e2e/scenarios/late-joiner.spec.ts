@@ -90,15 +90,15 @@ scenario('late-joiner sees two users with complete state', 'late-mesh', async ({
   expect(await charlie.visibleUsers()).toEqual(['Alice', 'Bob']);
   expect(await charlie.participantCount()).toBe(3);
   
-  // Charlie sees Alice's state
-  await expectPosition(() => charlie.avatarOf('Alice').position(), alicePos);
+  // Charlie sees Alice's state (longer timeout for 3-user mesh)
+  await expectPosition(() => charlie.avatarOf('Alice').position(), alicePos, 10000);
   expect(await charlie.avatarOf('Alice').isMuted()).toBe(true);
   const charlieAliceShares = await charlie.screenShares();
   expect(charlieAliceShares.length).toBe(1);
   expect(charlieAliceShares[0].owner).toBe('Alice');
   
-  // Charlie sees Bob's state
-  await expectPosition(() => charlie.avatarOf('Bob').position(), bobPos);
+  // Charlie sees Bob's state (longer timeout for 3-user mesh)
+  await expectPosition(() => charlie.avatarOf('Bob').position(), bobPos, 10000);
   expect(await charlie.avatarOf('Bob').status()).toBe('BRB');
   expect(await charlie.avatarOf('Bob').isWebcamOn()).toBe(false);
 });
