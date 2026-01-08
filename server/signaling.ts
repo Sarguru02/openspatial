@@ -173,6 +173,8 @@ export function attachSignaling(io: Server): void {
           username: currentUsername,
           x: x || 0,
           y: y || 0,
+          width: 480,  // Default size matching client's createScreenShare
+          height: 320,
         };
         space?.screenShares.set(shareId, shareData);
         

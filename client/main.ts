@@ -28,8 +28,10 @@ import type {
 // Pending share info for late-joining peers
 interface PendingShareInfo {
   shareId: string;
-  x?: number;
-  y?: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 // Application state
@@ -352,6 +354,8 @@ function handleSpaceState(spaceState: SpaceStateEvent): void {
           shareId,
           x: shareData.x,
           y: shareData.y,
+          width: shareData.width,
+          height: shareData.height,
         });
       }
     }

@@ -11,8 +11,10 @@ const ICE_SERVERS = [
 
 interface PendingShareInfo {
   shareId: string;
-  x?: number;
-  y?: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 interface AppState {
@@ -257,14 +259,18 @@ export class WebRTCManager {
     let shareId: string;
     let x = avatarPos.x + 150;
     let y = avatarPos.y;
+    let width = 480;  // Default size
+    let height = 320;
 
     const pendingIds = this.state.pendingShareIds?.get(peerId);
     if (pendingIds && pendingIds.length > 0) {
       const pending = pendingIds.shift()!;
       if (typeof pending === 'object') {
         shareId = pending.shareId;
-        x = pending.x || x;
-        y = pending.y || y;
+        x = pending.x;
+        y = pending.y;
+        width = pending.width;
+        height = pending.height;
       } else {
         shareId = pending;
       }
@@ -274,6 +280,11 @@ export class WebRTCManager {
     }
 
     this.screenShare?.createScreenShare(shareId, peerId, username, stream, x, y);
+    
+    // Always apply size for late-joiners
+    if (this.screenShare) {
+      this.screenShare.setSize(shareId, width, height);
+    }
   }
 
   addScreenTrack(shareId: string, screenStream: MediaStream): void {

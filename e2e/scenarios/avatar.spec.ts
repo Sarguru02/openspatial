@@ -48,3 +48,18 @@ scenario('participant count updates', 'count-test', async ({ createUser }) => {
   expect(await alice.participantCount()).toBe(2);
   expect(await bob.participantCount()).toBe(2);
 });
+
+scenario('late-joiner sees avatar position', 'pos-late', async ({ createUser }) => {
+  const alice = await createUser('Alice').join();
+  
+  // Alice moves to a specific position
+  await alice.dragAvatar({ dx: 150, dy: 100 });
+  const alicePos = await alice.avatarOf('Alice').position();
+  
+  // Bob joins later
+  const bob = await createUser('Bob').join();
+  await bob.waitForUser('Alice');
+  
+  // Bob should see Alice at her moved position
+  await expectPosition(() => bob.avatarOf('Alice').position(), alicePos);
+});

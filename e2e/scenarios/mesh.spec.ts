@@ -92,3 +92,19 @@ scenario('screen share visible to all mesh peers', 'mesh-screenshare', async ({ 
   expect(charlieShares.length).toBe(1);
   expect(charlieShares[0].owner).toBe('Alice');
 });
+
+scenario('late-joiner sees existing mesh', 'mesh-late', async ({ createUser }) => {
+  const alice = await createUser('Alice').join();
+  const bob = await createUser('Bob').join();
+  await alice.waitForUser('Bob');
+  await bob.waitForUser('Alice');
+  
+  // Charlie joins later
+  const charlie = await createUser('Charlie').join();
+  await charlie.waitForUser('Alice');
+  await charlie.waitForUser('Bob');
+  
+  // Charlie should see both existing users
+  expect(await charlie.visibleUsers()).toEqual(['Alice', 'Bob']);
+  expect(await charlie.participantCount()).toBe(3);
+});

@@ -90,3 +90,34 @@ scenario('multiple users can screen share', 'ss-multiple', async ({ createUser }
   expect(aliceOwners).toEqual(['Alice', 'Bob']);
   expect(bobOwners).toEqual(['Alice', 'Bob']);
 });
+
+scenario('late-joiner sees screen share', 'ss-late', async ({ createUser }) => {
+  const alice = await createUser('Alice').join();
+  
+  // Alice starts screen sharing, then resizes it
+  await alice.startScreenShare({ color: 'purple' });
+  await alice.wait(500);
+  
+  // Alice resizes the screen share
+  const resizedRect = {
+    position: { x: 2200, y: 2100 },
+    size: { width: 640, height: 480 },
+  };
+  await alice.resizeScreenShare(resizedRect);
+  await alice.wait(500);
+  
+  // Get Alice's final screen share rect
+  const aliceRect = await alice.screenShareOf('Alice').rect();
+  
+  // Bob joins later
+  const bob = await createUser('Bob').join();
+  await bob.waitForUser('Alice');
+  await bob.waitForScreenShare('Alice');
+  
+  // Bob should see Alice's screen share with correct size
+  const shares = await bob.screenShares();
+  expect(shares.length).toBe(1);
+  expect(shares[0].owner).toBe('Alice');
+  // Verify exact size matches
+  expectRect(shares[0].rect, { position: shares[0].rect.position, size: aliceRect.size });
+});
