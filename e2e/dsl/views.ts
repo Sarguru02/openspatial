@@ -41,10 +41,13 @@ export class AvatarViewImpl implements AvatarView {
   }
 
   async isWebcamOn(): Promise<boolean> {
-    const indicator = this.locator.locator('.avatar-indicator.webcam');
+    // Webcam is on if video element is visible (not hidden by isVideoOff)
+    const video = this.locator.locator('.avatar-video-container video');
     try {
-      await expect(indicator).toBeVisible({ timeout: SYNC_TIMEOUT });
-      return true;
+      await expect(video).toBeVisible({ timeout: SYNC_TIMEOUT });
+      // Also check that video has a srcObject (stream attached)
+      const hasStream = await video.evaluate((el: HTMLVideoElement) => !!el.srcObject);
+      return hasStream;
     } catch {
       return false;
     }

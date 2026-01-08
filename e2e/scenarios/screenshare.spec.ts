@@ -44,3 +44,49 @@ scenario('screen share resize syncs', 'ss-resize', async ({ createUser }) => {
 
   expectRect(newRect, expectedRect);
 });
+
+scenario('stopping screen share removes it', 'ss-stop', async ({ createUser }) => {
+  const alice = await createUser('Alice').join();
+  const bob = await createUser('Bob').join();
+  await bob.waitForUser('Alice');
+
+  await alice.startScreenShare({ color: 'yellow' });
+  await bob.waitForScreenShare('Alice');
+
+  const sharesBefore = await bob.screenShares();
+  expect(sharesBefore.length).toBe(1);
+  expect(sharesBefore[0].owner).toBe('Alice');
+
+  await alice.stopScreenShare();
+  await bob.wait(1000);
+
+  expect(await bob.screenShares()).toEqual([]);
+});
+
+scenario('multiple users can screen share', 'ss-multiple', async ({ createUser }) => {
+  const alice = await createUser('Alice').join();
+  const bob = await createUser('Bob').join();
+  await alice.waitForUser('Bob');
+  await bob.waitForUser('Alice');
+
+  // Both users start screen sharing
+  await alice.startScreenShare({ color: 'red' });
+  await bob.startScreenShare({ color: 'blue' });
+
+  await alice.wait(1000);
+  await bob.wait(1000);
+
+  // Each user should see both screen shares
+  const aliceShares = await alice.screenShares();
+  const bobShares = await bob.screenShares();
+
+  expect(aliceShares.length).toBe(2);
+  expect(bobShares.length).toBe(2);
+
+  // Verify ownership
+  const aliceOwners = aliceShares.map(s => s.owner).sort();
+  const bobOwners = bobShares.map(s => s.owner).sort();
+
+  expect(aliceOwners).toEqual(['Alice', 'Bob']);
+  expect(bobOwners).toEqual(['Alice', 'Bob']);
+});

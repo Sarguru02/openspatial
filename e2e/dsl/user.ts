@@ -42,7 +42,7 @@ export class UserImpl implements User {
   }
 
   async toggleWebcam(): Promise<void> {
-    await this.page.click('#btn-webcam');
+    await this.page.click('#btn-camera');
   }
 
   async muteWebcam(): Promise<void> {
@@ -78,7 +78,10 @@ export class UserImpl implements User {
   }
 
   async stopScreenShare(): Promise<void> {
-    await this.page.click('#btn-screen');
+    // Click the close button on our own screen share
+    const screenShare = this.page.locator('.screen-share:has-text("Your Screen")');
+    const closeBtn = screenShare.locator('.screen-share-close');
+    await closeBtn.click();
   }
 
   async resizeScreenShare(rect: Rect): Promise<void> {
