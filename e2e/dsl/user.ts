@@ -141,6 +141,22 @@ export class UserImpl implements User {
     await expect(avatar).toBeVisible({ timeout: SYNC_TIMEOUT });
   }
 
+  /**
+   * Wait for a screen share from a specific owner to be visible.
+   */
+  async waitForScreenShare(owner: string): Promise<void> {
+    const labelText = owner === this.name ? 'Your Screen' : `${owner}'s Screen`;
+    const screenShare = this.page.locator('.screen-share', { hasText: labelText });
+    await expect(screenShare).toBeVisible({ timeout: SYNC_TIMEOUT });
+  }
+
+  /**
+   * Wait for a specified duration.
+   */
+  async wait(ms: number): Promise<void> {
+    await this.page.waitForTimeout(ms);
+  }
+
   async visibleUsers(): Promise<string[]> {
     // Wait a bit for any pending syncs
     await this.page.waitForTimeout(SYNC_WAIT);
@@ -162,7 +178,7 @@ export class UserImpl implements User {
 
     for (let i = 0; i < count; i++) {
       const share = shares.nth(i);
-      const label = await share.locator('.screen-share-label').textContent();
+      const label = await share.locator('.screen-share-title span').textContent();
       const owner = label?.replace("'s Screen", '').replace('Your Screen', this.name).trim() ?? '';
       const rect = await share.evaluate((el: HTMLElement) => ({
         position: {

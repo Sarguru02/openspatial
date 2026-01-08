@@ -72,9 +72,13 @@ export function scenario(name: string, spaceId: string, fn: ScenarioFn): void {
     try {
       await fn({ createUser });
     } finally {
-      // Clean up all created contexts
+      // Clean up all created contexts (ignore errors for already-closed contexts)
       for (const ctx of contexts) {
-        await ctx.close();
+        try {
+          await ctx.close();
+        } catch {
+          // Context may already be closed
+        }
       }
     }
   });

@@ -64,6 +64,8 @@ export interface User {
 
   // Queries
   waitForUser(name: string): Promise<void>;
+  waitForScreenShare(owner: string): Promise<void>;
+  wait(ms: number): Promise<void>;
   visibleUsers(): Promise<string[]>;
   screenShares(): Promise<ScreenShareInfo[]>;
   screenShareOf(owner: string): ScreenShareView;
@@ -101,4 +103,19 @@ export function expectRect(actual: Rect, expected: Rect): void {
   expect(actual.position.y).toBe(expected.position.y);
   expect(actual.size.width).toBe(expected.size.width);
   expect(actual.size.height).toBe(expected.size.height);
+}
+
+/**
+ * Assert that a position getter eventually returns the expected position.
+ * Uses polling to wait for position sync.
+ */
+export async function expectPosition(
+  getPosition: () => Promise<Position>,
+  expected: Position,
+  timeout = 5000
+): Promise<void> {
+  await expect.poll(async () => {
+    const pos = await getPosition();
+    return pos.x === expected.x && pos.y === expected.y;
+  }, { timeout }).toBe(true);
 }

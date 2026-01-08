@@ -1,8 +1,8 @@
 /**
  * Avatar & User Visibility Scenarios
  */
-import { expect, test } from '@playwright/test';
-import { scenario } from '../dsl';
+import { expect } from '@playwright/test';
+import { scenario, expectPosition } from '../dsl';
 
 scenario('both users see each other', 'see-each-other', async ({ createUser }) => {
   const alice = await createUser('Alice').join();
@@ -15,10 +15,19 @@ scenario('both users see each other', 'see-each-other', async ({ createUser }) =
   expect(await bob.visibleUsers()).toEqual(['Alice']);
 });
 
-// FIXME: Flaky - Playwright mouse drag doesn't always trigger avatar drag handlers
-// See: https://github.com/srid/openspatial/issues/24
-test.skip('avatar position syncs', async () => {
-  // Skipped - Position drag test is flaky
+scenario('avatar position syncs', 'position-sync', async ({ createUser }) => {
+  const alice = await createUser('Alice').join();
+  const bob = await createUser('Bob').join();
+  await bob.waitForUser('Alice');
+
+  // Alice drags her avatar
+  await alice.dragAvatar({ dx: 100, dy: 100 });
+  
+  // Get Alice's position after drag
+  const alicePos = await alice.avatarOf('Alice').position();
+  
+  // Bob should eventually see the exact same position as Alice
+  await expectPosition(() => bob.avatarOf('Alice').position(), alicePos);
 });
 
 scenario('leaving removes avatar', 'leave-test', async ({ createUser }) => {
