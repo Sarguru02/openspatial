@@ -15,6 +15,20 @@ scenario('both users see each other', 'see-each-other', async ({ createUser }) =
   expect(await bob.visibleUsers()).toEqual(['Alice']);
 });
 
+scenario('existing user sees new joiner position', 'new-joiner-pos', async ({ createUser }) => {
+  const alice = await createUser('Alice').join();
+  const bob = await createUser('Bob').join();
+
+  await alice.waitForUser('Bob');
+  await bob.waitForUser('Alice');
+  
+  // Bob sees his own position (server-assigned)
+  const bobPosSelf = await bob.avatarOf('Bob').position();
+  
+  // Verify Alice sees Bob at the SAME position Bob sees himself
+  await expectPosition(() => alice.avatarOf('Bob').position(), bobPosSelf);
+});
+
 scenario('avatar position syncs', 'position-sync', async ({ createUser }) => {
   const alice = await createUser('Alice').join();
   const bob = await createUser('Bob').join();

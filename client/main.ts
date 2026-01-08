@@ -326,7 +326,11 @@ function handleConnected(data: ConnectedEvent): void {
 
 function handleSpaceState(spaceState: SpaceStateEvent): void {
   for (const [peerId, peerData] of Object.entries(spaceState.peers)) {
-    if (peerId !== state.peerId) {
+    if (peerId === state.peerId) {
+      // Apply server-assigned position to local avatar
+      avatars.setPosition(peerId, peerData.position.x, peerData.position.y);
+      canvas.centerOn(peerData.position.x, peerData.position.y);
+    } else {
       state.peers.set(peerId, peerData);
       avatars.createRemoteAvatar(peerId, peerData.username, peerData.position.x, peerData.position.y);
 

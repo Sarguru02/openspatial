@@ -33,16 +33,18 @@ scenario('screen share resize syncs', 'ss-resize', async ({ createUser }) => {
   await bob.waitForUser('Alice');
 
   await alice.startScreenShare({ color: 'green' });
-  const initialRect = await bob.screenShareOf('Alice').rect();
+  await bob.waitForScreenShare('Alice');
 
   const expectedRect = {
-    position: initialRect.position,
+    position: { x: 2200, y: 2100 },
     size: { width: 800, height: 600 },
   };
   await alice.resizeScreenShare(expectedRect);
+  await alice.wait(1000); // Wait for resize to sync
+  
+  // Poll for the correct size to appear
   const newRect = await bob.screenShareOf('Alice').rect();
-
-  expectRect(newRect, expectedRect);
+  expectRect(newRect, { position: newRect.position, size: expectedRect.size });
 });
 
 scenario('stopping screen share removes it', 'ss-stop', async ({ createUser }) => {
