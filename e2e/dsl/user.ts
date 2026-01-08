@@ -55,12 +55,32 @@ export class UserImpl implements User {
   }
 
   async setStatus(text: string): Promise<void> {
-    await this.page.fill('#status-input', text);
-    await this.page.click('#btn-set-status');
+    // Click on the status trigger (+ button) or existing status badge on our avatar
+    const avatar = this.page.locator('.avatar.self');
+    const statusTrigger = avatar.locator('.avatar-status-trigger');
+    const statusBadge = avatar.locator('.avatar-status');
+    
+    // Click whichever is visible (trigger if no status, badge if has status)
+    if (await statusTrigger.isVisible()) {
+      await statusTrigger.click();
+    } else {
+      await statusBadge.click();
+    }
+    
+    // Fill in the popover input and save
+    await this.page.fill('.status-popover-input', text);
+    await this.page.click('.status-popover-save');
   }
 
   async clearStatus(): Promise<void> {
-    await this.page.click('#btn-clear-status');
+    // Click on the existing status badge to open the popover
+    const avatar = this.page.locator('.avatar.self');
+    const statusBadge = avatar.locator('.avatar-status');
+    
+    if (await statusBadge.isVisible()) {
+      await statusBadge.click();
+      await this.page.click('.status-popover-clear');
+    }
   }
 
   async startScreenShare(opts?: { color?: string }): Promise<ScreenShareInfo> {

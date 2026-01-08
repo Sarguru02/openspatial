@@ -138,13 +138,6 @@ function setupEventListeners(): void {
   document.getElementById('btn-camera')!.addEventListener('click', toggleCamera);
   document.getElementById('btn-screen')!.addEventListener('click', startScreenShare);
   document.getElementById('btn-leave')!.addEventListener('click', leaveSpace);
-  document.getElementById('btn-set-status')!.addEventListener('click', setStatus);
-  document.getElementById('btn-clear-status')!.addEventListener('click', clearStatus);
-  document.getElementById('status-input')!.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      setStatus();
-    }
-  });
 
   socket.on('connected', handleConnected);
   socket.on('peer-joined', handlePeerJoined);
@@ -321,6 +314,15 @@ function handleConnected(data: ConnectedEvent): void {
     spatialAudio.updatePositions(avatars.getPositions(), state.peerId!);
   });
 
+  avatars.onStatusChange((newStatus) => {
+    state.status = newStatus;
+    avatars.updateStatus(state.peerId!, newStatus);
+    socket.emit('status-update', {
+      peerId: state.peerId!,
+      status: newStatus,
+    });
+  });
+
   updateParticipantCount();
 }
 
@@ -474,31 +476,7 @@ function toggleCamera(): void {
   });
 }
 
-function setStatus(): void {
-  const statusInput = document.getElementById('status-input') as HTMLInputElement;
-  const newStatus = statusInput.value.trim();
-  
-  state.status = newStatus;
-  avatars.updateStatus(state.peerId!, newStatus);
-  
-  socket.emit('status-update', {
-    peerId: state.peerId!,
-    status: newStatus,
-  });
-}
 
-function clearStatus(): void {
-  const statusInput = document.getElementById('status-input') as HTMLInputElement;
-  statusInput.value = '';
-  
-  state.status = '';
-  avatars.updateStatus(state.peerId!, '');
-  
-  socket.emit('status-update', {
-    peerId: state.peerId!,
-    status: '',
-  });
-}
 
 async function startScreenShare(): Promise<void> {
   try {
