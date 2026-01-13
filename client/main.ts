@@ -4,6 +4,7 @@ import { WebRTCManager } from './modules/webrtc.js';
 import { CanvasManager } from './modules/canvas.js';
 import { AvatarManager } from './modules/avatar.js';
 import { ScreenShareManager } from './modules/screenshare.js';
+import { TextNoteManager } from './modules/textnote.js';
 import { SpatialAudio } from './modules/spatial-audio.js';
 import { UIController } from './modules/ui.js';
 import { MinimapManager } from './modules/minimap.js';
@@ -53,6 +54,14 @@ const screenShare = new ScreenShareManager(
   (shareId, x, y) => crdt?.updateScreenSharePosition(shareId, x, y),
   (shareId, width, height) => crdt?.updateScreenShareSize(shareId, width, height),
   (shareId) => stopScreenShare(shareId)
+);
+const textNote = new TextNoteManager(
+  state,
+  (noteId, x, y) => crdt?.updateTextNotePosition(noteId, x, y),
+  (noteId, width, height) => crdt?.updateTextNoteSize(noteId, width, height),
+  (noteId, content) => crdt?.updateTextNoteContent(noteId, content),
+  (noteId, fontSize, color) => crdt?.updateTextNoteStyle(noteId, fontSize, color),
+  (noteId) => removeTextNote(noteId)
 );
 const spatialAudio = new SpatialAudio();
 spatialAudio.setAvatarManager(avatars);
@@ -149,6 +158,7 @@ function setupEventListeners(): void {
   document.getElementById('btn-mic')!.addEventListener('click', toggleMic);
   document.getElementById('btn-camera')!.addEventListener('click', toggleCamera);
   document.getElementById('btn-screen')!.addEventListener('click', startScreenShare);
+  document.getElementById('btn-note')!.addEventListener('click', createTextNote);
   document.getElementById('btn-leave')!.addEventListener('click', leaveSpace);
 
   socket.on('connected', handleConnected);
@@ -394,6 +404,53 @@ function setupCRDTObservers(): void {
       screenShare.setSize(shareId, shareState.width, shareState.height);
     }
   });
+
+  // Observe text note state changes
+  // Track which note IDs we've created DOM elements for
+  const existingNoteIds = new Set<string>();
+  
+  crdt.observeTextNotes((notes) => {
+    // Track which notes exist in CRDT
+    const crdtNoteIds = new Set(notes.keys());
+    
+    // Remove notes that no longer exist in CRDT
+    for (const noteId of existingNoteIds) {
+      if (!crdtNoteIds.has(noteId)) {
+        textNote.removeTextNote(noteId);
+        existingNoteIds.delete(noteId);
+      }
+    }
+    
+    for (const [noteId, noteState] of notes) {
+      // Create if doesn't exist
+      if (!existingNoteIds.has(noteId)) {
+        textNote.createTextNote(
+          noteId,
+          noteState.peerId,
+          noteState.username,
+          noteState.content,
+          noteState.x,
+          noteState.y,
+          noteState.width,
+          noteState.height,
+          noteState.fontSize,
+          noteState.fontFamily,
+          noteState.color
+        );
+        existingNoteIds.add(noteId);
+      }
+      
+      // For remote notes, update state
+      if (noteState.peerId !== state.peerId) {
+        textNote.setPosition(noteId, noteState.x, noteState.y);
+        textNote.setSize(noteId, noteState.width, noteState.height);
+        textNote.setContent(noteId, noteState.content);
+        textNote.setFontSize(noteId, noteState.fontSize);
+        textNote.setFontFamily(noteId, noteState.fontFamily);
+        textNote.setColor(noteId, noteState.color);
+      }
+    }
+  });
 }
 
 function handleSpaceState(spaceState: SpaceStateEvent): void {
@@ -565,6 +622,24 @@ function stopScreenShare(shareId: string): void {
   socket.emit('screen-share-stopped', { peerId: state.peerId!, shareId });
 }
 
+function createTextNote(): void {
+  if (!state.peerId) return;
+  
+  const noteId = `${state.peerId}-note-${Date.now()}`;
+  const localPos = avatars.getPosition(state.peerId);
+  // Place note near the avatar
+  const x = localPos.x + 150;
+  const y = localPos.y - 50;
+  
+  // Add to CRDT
+  crdt?.addTextNote(noteId, state.peerId, state.username, '', x, y, 250, 150);
+}
+
+function removeTextNote(noteId: string): void {
+  textNote.removeTextNote(noteId);
+  crdt?.removeTextNote(noteId);
+}
+
 function leaveSpace(): void {
   if (state.localStream) {
     state.localStream.getTracks().forEach((track) => track.stop());
@@ -585,6 +660,7 @@ function leaveSpace(): void {
 
   avatars.clear();
   screenShare.clear();
+  textNote.clear();
 
   state.peers.clear();
   state.localStream = null;
