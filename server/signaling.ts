@@ -1,15 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { Server, Socket } from 'socket.io';
+import * as Y from 'yjs';
+// @ts-expect-error - y-websocket utils has no types
+import { docs } from 'y-websocket/bin/utils';
 import type {
   JoinSpaceEvent,
   SignalEvent,
-  PositionUpdateEvent,
-  MediaStateUpdateEvent,
-  StatusUpdateEvent,
   ScreenShareStartedEvent,
   ScreenShareStoppedEvent,
-  ScreenSharePositionUpdateEvent,
-  ScreenShareResizeUpdateEvent,
   GetSpaceInfoEvent,
   PeerData,
   ScreenShareData,
@@ -23,6 +21,30 @@ import type {
 interface Space {
   peers: Map<string, PeerData>;
   screenShares: Map<string, ScreenShareData>;
+}
+
+/**
+ * Clean up a peer from the CRDT document when they disconnect.
+ * This handles cases like browser refresh where client-side cleanup doesn't run.
+ */
+function cleanupCRDTOnDisconnect(spaceId: string, peerId: string): void {
+  const doc = docs.get(spaceId) as Y.Doc | undefined;
+  if (doc) {
+    const peers = doc.getMap('peers');
+    if (peers.has(peerId)) {
+      peers.delete(peerId);
+      console.log(`[CRDT Cleanup] Removed peer ${peerId} from space ${spaceId}`);
+    }
+    // Also cleanup any screen shares owned by this peer
+    const screenShares = doc.getMap('screenShares');
+    for (const [shareId, value] of screenShares.entries()) {
+      const share = value as { peerId: string };
+      if (share.peerId === peerId) {
+        screenShares.delete(shareId);
+        console.log(`[CRDT Cleanup] Removed screen share ${shareId} from space ${spaceId}`);
+      }
+    }
+  }
 }
 
 /**
@@ -88,7 +110,7 @@ export function attachSignaling(io: Server): void {
 
       const spaceState: SpaceStateEvent = {
         peers: Object.fromEntries(space.peers),
-        screenShares: Object.fromEntries(space.screenShares),
+        // Screen shares are managed by CRDT, not sent here
       };
       socket.emit('space-state', spaceState);
 
@@ -109,74 +131,24 @@ export function attachSignaling(io: Server): void {
       }
     });
 
-    socket.on('position-update', ({ peerId: pid, x, y }: PositionUpdateEvent) => {
-      if (!currentSpace) return;
-      const space = spaces.get(currentSpace);
-      const peer = space?.peers.get(pid);
-      if (peer) {
-        peer.position = { x, y };
-        socket.to(currentSpace).emit('position-update', { peerId: pid, x, y });
-      }
-    });
+    // Note: The following handlers have been removed as state sync is now managed by Yjs CRDT:
+    // - position-update
+    // - screen-share-position-update
+    // - screen-share-resize-update
+    // - media-state-update
+    // - status-update
 
-    socket.on('screen-share-position-update', ({ shareId, x, y }: ScreenSharePositionUpdateEvent) => {
-      if (!currentSpace) return;
-      const space = spaces.get(currentSpace);
-      const share = space?.screenShares.get(shareId);
-      // Only allow owner to update position
-      if (share && share.peerId === peerId) {
-        share.x = x;
-        share.y = y;
-        socket.to(currentSpace).emit('screen-share-position-update', { shareId, x, y });
-      }
-    });
-
-    socket.on('screen-share-resize-update', ({ shareId, width, height }: ScreenShareResizeUpdateEvent) => {
-      if (!currentSpace) return;
-      const space = spaces.get(currentSpace);
-      const share = space?.screenShares.get(shareId);
-      // Only allow owner to update size
-      if (share && share.peerId === peerId) {
-        share.width = width;
-        share.height = height;
-        socket.to(currentSpace).emit('screen-share-resize-update', { shareId, width, height });
-      }
-    });
-
-    socket.on('media-state-update', ({ peerId: pid, isMuted, isVideoOff }: MediaStateUpdateEvent) => {
-      if (!currentSpace) return;
-      const space = spaces.get(currentSpace);
-      const peer = space?.peers.get(pid);
-      if (peer) {
-        peer.isMuted = isMuted;
-        peer.isVideoOff = isVideoOff;
-        socket.to(currentSpace).emit('media-state-update', { peerId: pid, isMuted, isVideoOff });
-      }
-    });
-
-    socket.on('status-update', ({ peerId: pid, status }: StatusUpdateEvent) => {
-      if (!currentSpace) return;
-      const space = spaces.get(currentSpace);
-      const peer = space?.peers.get(pid);
-      if (peer) {
-        peer.status = status;
-        socket.to(currentSpace).emit('status-update', { peerId: pid, status });
-      }
-    });
-
-    socket.on('screen-share-started', ({ peerId: pid, shareId, x, y }: ScreenShareStartedEvent) => {
+    socket.on('screen-share-started', ({ peerId: pid, shareId }: ScreenShareStartedEvent) => {
       if (!currentSpace) return;
       const space = spaces.get(currentSpace);
       const peer = space?.peers.get(pid);
       if (peer && currentUsername) {
         peer.isScreenSharing = true;
+        // Only track shareId -> peerId/username mapping for WebRTC routing
+        // Position and size are managed by CRDT
         const shareData: ScreenShareData = {
           peerId: pid,
           username: currentUsername,
-          x: x || 0,
-          y: y || 0,
-          width: 480,  // Default size matching client's createScreenShare
-          height: 320,
         };
         space?.screenShares.set(shareId, shareData);
         
@@ -217,6 +189,10 @@ export function attachSignaling(io: Server): void {
               space.screenShares.delete(shareId);
             }
           }
+          
+          // Clean up CRDT - remove peer and their screen shares from Yjs document
+          cleanupCRDTOnDisconnect(currentSpace, peerId);
+          
           socket.to(currentSpace).emit('peer-left', { peerId });
           console.log(`[Signaling] ${currentUsername} left space ${currentSpace} (${space.peers.size} peers)`);
           if (space.peers.size === 0) {

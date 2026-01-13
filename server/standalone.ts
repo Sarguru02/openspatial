@@ -5,6 +5,7 @@ import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { attachSignaling } from './signaling.js';
+import { attachYjsServer } from './yjs-server.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -61,6 +62,9 @@ const io = new Server(server, {
 });
 
 attachSignaling(io);
+
+// Attach Yjs WebSocket server for CRDT document synchronization
+attachYjsServer(server);
 
 const protocol = USE_HTTPS ? 'https' : 'http';
 server.listen(PORT, '0.0.0.0', () => {
